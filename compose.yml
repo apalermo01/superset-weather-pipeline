@@ -1,0 +1,6 @@
+services:
+  database:
+    image: postgres:17
+    environment:
+        POSTGRES_PASSWORD: pass 
+
