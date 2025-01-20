@@ -1,6 +1,12 @@
 services:
   database:
-    image: postgres:17
-    environment:
-        POSTGRES_PASSWORD: pass 
-
+    image: 'postgres:latest'
+    container_name: weather-db
+    ports:
+      - 5432:5432
+    environment: 
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: postgres
+    volumes:
+      - /var/lib/postgres-weather-db/data/:/var/lib/postgresql/data/
