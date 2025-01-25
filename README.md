@@ -1,7 +1,8 @@
 # Project roadmap
 
-- [ ] Set up postgres
-- [ ] Identify data source
+- [x] Set up postgres
+- [x] Identify data source
+    - https://www.weather.gov/documentation/services-web-api#/default/obs_stations
 - [ ] Create ingestion pipeline
 - [ ] Set up migration scripts
 - [ ] Set up superset
@@ -12,3 +13,5 @@
 - [ ] Enable encryption layer 
 - [ ] Create A/B test with encryption layer
 - [ ] Benchmark encryption performance
+
+
