@@ -45,8 +45,12 @@ echo "=========================="
 echo "== CONFIGURING POSTGRES =="
 echo "=========================="
 
-docker stop weather_db
-docker rm weather_db
+docker stop weather_db \
+            staging_weather_db 
+
+docker rm weather_db \
+          staging-weather-db
+
 docker compose -f compose.yml up --detach
 
 echo "=========================="
@@ -55,4 +59,5 @@ echo "=========================="
 
 echo "Superset: visit localhost:8088"
 echo "Postgres: connect using psql postgresql://user:pass@localhost:5432/postgres"
+echo "Postgres (staging database): connect using psql postgresql://user:pass@localhost:5000/postgres"
 

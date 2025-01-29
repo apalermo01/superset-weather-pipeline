@@ -1,4 +1,3 @@
-create table stations (
-  id varchar(255),
-
+create table migrations(
+    
 )
