@@ -1,4 +1,6 @@
 requests
 isort
 black
-psycopg2
+psycopg
+python-dotenv
+pyright

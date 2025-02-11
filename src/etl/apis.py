@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 
 class APIHandler:
     base_url = "https://api.weather.gov"
-    max_tries = 10
+    max_tries = 1
 
 
 def call_api(url: str, method: Literal["get"], arrs: list):
@@ -60,7 +60,6 @@ def get_stations():
 
 def get_stations_by_state(states: list):
     states_str = ",".join(states)
-    print("states str = ", states_str)
     url = f"{APIHandler.base_url}/stations?state={states_str}"
     return call_api(url, "get", ["features"])
 
