@@ -1,58 +1,66 @@
 import logging
-
+from typing import Optional, Dict
 from src.etl import apis
 import psycopg
+from psycopg import sql
 
 from src.util.env_util import get_env
 
 logger = logging.getLogger(__name__)
 
 
-def insert_records_from_dict(func):
+def upsert_records_from_list(func):
     """Assumes data is a list of dictionaries"""
 
     def wrapper():
-        data, table_name, succ = func()
-        if not succ:
-            return
-        assert len(data) > 0
-        columns = data[0].keys()
-        columns_str = ','.join(columns)
-        num_columns = len(columns)
 
-        # insert_query = f"""
-        # insert into {table_name} ({','.join(columns)})
-        # values ({'%s,'*(num_columns-1) + '%s'})
-        # """
-        # logger.info(f"insert query = {insert_query}")
-        num_rows = 0
+        result = func()
+        if not result:
+            return
+
+        assert len(result['data']) > 0
+        columns = list(result['data'][0].keys())
+
+        insert_query = sql.SQL("""
+        insert into {}.{} ({})
+        values ({})
+        on conflict({})
+        do update set
+        {}
+        """).format(sql.Identifier(result['schema']),
+                    sql.Identifier(result['table']),
+                    sql.SQL(', ').join(map(sql.Identifier, columns)),
+                    sql.SQL(', ').join(sql.Placeholder() * len(columns)),
+                    sql.SQL(', ').join(map(sql.Identifier, result['id_cols'])),
+                    sql.SQL(', ').join(
+                        sql.SQL('{} = excluded.{}').format(sql.Identifier(col), sql.Identifier(col))
+                        for col in result['update_cols']
+                    ))
         with psycopg.connect(get_env("PRODUCTION_CONNECTION_STRING")) as conn:
             with conn.cursor() as cur:
-                with cur.copy(f"COPY {table_name} ({columns_str}) FROM STDIN") as copy:
-                    for key in data:
-                        copy.write_row(data[key].values())
-                        num_rows += 1
-        logger.info(f"wrote {num_rows} to {table_name}")
+                cur.executemany(insert_query, [list(i.values()) for i in result['data']])
+                logger.info(f"upsert affected {cur.rowcount} records")
+
     return wrapper
 
-@insert_records_from_dict
-def populate_stations():
+@upsert_records_from_list
+def populate_stations() -> Optional[Dict]:
     try:
         data = apis.get_stations_by_state(["NC"])
     except Exception as e:
         logger.error(e)
-        return None, None, False
+        return None
 
     data_shaped = []
     for f in data["features"]:
         if f["geometry"]["type"] != "Point":
             raise ValueError(f"unexpected geometry type: {f['geometry']['type']}")
-        data_shaped.append(
-            {
+        long, lat = f["geometry"]["coordinates"]
+        record = {
                 "id": f["properties"]["stationIdentifier"],
                 "station_url": f["id"],
                 "type": f["properties"]["@type"],
-                "location": f["geometry"]["coordinates"],
+                "location": f"SRID=4326;POINT({float(lat)} {float(long)})",
                 "elevation_unit": f["properties"]["elevation"]["unitCode"],
                 "elevation": f["properties"]["elevation"]["value"],
                 "station_name": f["properties"]["name"],
@@ -61,5 +69,14 @@ def populate_stations():
                 "county_url": f["properties"].get("county"),
                 "fire_weather_zone_url": f["properties"].get("fireWeatherZone"),
             }
-        )
-    return data_shaped, 'public.stations', True
+        data_shaped.append(record)
+    return {
+        'data': data_shaped,
+        'schema': 'fact_tables',
+        'table': 'stations',
+        'id_cols': ['id'],
+        'update_cols': ['station_url', 'type', 'location',
+                        'elevation_unit', 'elevation', 'station_name',
+                        'timezone', 'forecast_url', 'county_url', 'fire_weather_zone_url'],
+        'succ': True
+    }
