@@ -21,4 +21,4 @@ services:
       POSTGRES_PASSWORD: pass
       POSTGRES_DB: postgres
     volumes:
-      - /var/lib/postgres-staging-weather-db/data/:/var/lib/staging-postgresql/data/
+      - /var/lib/postgres-staging-weather-db/data/:/var/lib/postgresql/data/

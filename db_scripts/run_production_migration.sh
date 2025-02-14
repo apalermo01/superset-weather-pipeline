@@ -47,13 +47,13 @@ fi
 # run the script
 echo "running file $1"
 
-SUCC=psql $PRODUCTION_CONNECTION_STRING \
-          --file=$1 \
-          --variable ON_ERROR_STOP=1
+psql $PRODUCTION_CONNECTION_STRING \
+    --file=$1 \
+    --variable ON_ERROR_STOP=1
 
-if [ "$SUCC" -ne 0 ]; then 
+if [ $? -ne 0 ]; then 
     echo "Migration failed"
-    exit 
+    exit 1
 else 
     echo "Migration successful"
 fi

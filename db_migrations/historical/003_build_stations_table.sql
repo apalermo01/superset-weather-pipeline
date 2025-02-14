@@ -1,9 +1,9 @@
-create table stations (
+create table fact_tables.stations (
     id varchar(255) primary key,
     station_url varchar(255),
     type varchar(255),
     location geography(POINT),
-    elevation_unit varhcar(255),
+    elevation_unit varchar(255),
     elevation decimal,
     station_name varchar(255),
     timezone varchar(255),

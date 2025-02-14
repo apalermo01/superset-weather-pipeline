@@ -8,7 +8,7 @@ from src.util.env_util import get_env
 logger = logging.getLogger(__name__)
 
 
-def insert_records(func):
+def insert_records_from_dict(func):
     """Assumes data is a list of dictionaries"""
 
     def wrapper():
@@ -17,19 +17,25 @@ def insert_records(func):
             return
         assert len(data) > 0
         columns = data[0].keys()
+        columns_str = ','.join(columns)
         num_columns = len(columns)
 
-        insert_query = f"""
-        insert into {table_name} ({','.join(columns)})
-        values ({'%s,'*(num_columns-1) + '%s'})
-        """
-        logger.info(f"insert query = {insert_query}")
+        # insert_query = f"""
+        # insert into {table_name} ({','.join(columns)})
+        # values ({'%s,'*(num_columns-1) + '%s'})
+        # """
+        # logger.info(f"insert query = {insert_query}")
+        num_rows = 0
         with psycopg.connect(get_env("PRODUCTION_CONNECTION_STRING")) as conn:
             with conn.cursor() as cur:
-                pass
+                with cur.copy(f"COPY {table_name} ({columns_str}) FROM STDIN") as copy:
+                    for key in data:
+                        copy.write_row(data[key].values())
+                        num_rows += 1
+        logger.info(f"wrote {num_rows} to {table_name}")
     return wrapper
 
-@insert_records
+@insert_records_from_dict
 def populate_stations():
     try:
         data = apis.get_stations_by_state(["NC"])
