@@ -20,6 +20,8 @@ pg_dump $PRODUCTION_CONNECTION_STRING \
 
 echo "Restoring staging database"
 
+psql $STAGING_CONNECTION_STRING \
+    -c "DROP EXTENSION IF EXISTS postgis CASCADE"
 pg_restore -d $STAGING_CONNECTION_STRING \
     "$BACKUP_PATH" \
     --no-password \

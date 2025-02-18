@@ -61,6 +61,8 @@ def populate_stations() -> Optional[Dict]:
                 "station_url": f["id"],
                 "type": f["properties"]["@type"],
                 "location": f"SRID=4326;POINT({float(lat)} {float(long)})",
+                'location_lat': float(lat),
+                'location_long': float(long),
                 "elevation_unit": f["properties"]["elevation"]["unitCode"],
                 "elevation": f["properties"]["elevation"]["value"],
                 "station_name": f["properties"]["name"],
