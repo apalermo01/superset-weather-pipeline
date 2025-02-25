@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Literal
+from typing import Literal, Optional
 
 import requests
 
@@ -12,8 +12,24 @@ class APIHandler:
     base_url = "https://api.weather.gov"
     max_tries = 10
 
+def call_api(url: str,
+             method: Literal["get"],) -> dict:
+    """API handler for calling the weather api.
 
-def call_api(url: str, method: Literal["get"], arrs: list):
+    This does NOT handle pagination / large number of records
+    """
+    allowed_methods = ["get"]
+    if method not in allowed_methods:
+        raise ValueError(f"Invalid method. {method} is not one of {allowed_methods}")
+    funcs = {"get": requests.get}
+    response = funcs[method](url=url)
+    response.raise_for_status()
+    return response.json()
+
+def call_api_with_pages(url: str,
+                        method: Literal["get"],
+                        arrs: Optional[list] = None):
+    """API handler meant to get batches of records with pagination"""
 
     allowed_methods = ["get"]
     if method not in allowed_methods:
@@ -31,12 +47,13 @@ def call_api(url: str, method: Literal["get"], arrs: list):
         response = funcs[method](url=url)
         response.raise_for_status()
         data = response.json()
-
-        for a in arrs:
-            logger.info(f"{a} got {len(data[a])} records")
-            if len(data[a]) == 0:
-                keep_going = False
-            all_data[a].extend(data[a])
+        
+        if arrs: 
+            for a in arrs:
+                logger.info(f"{a} got {len(data[a])} records")
+                if len(data[a]) == 0:
+                    keep_going = False
+                all_data[a].extend(data[a])
 
         if "pagination" not in data:
             logger.info(f"pagination entry not found in response. Stopping...")
@@ -54,16 +71,13 @@ def call_api(url: str, method: Literal["get"], arrs: list):
     return all_data
 
 
-def get_stations():
-    return requests.get(f"{APIHandler.base_url}/stations")
-
-
 def get_stations_by_state(states: list):
     states_str = ",".join(states)
     url = f"{APIHandler.base_url}/stations?state={states_str}"
-    return call_api(url, "get", ["features"])
+    return call_api_with_pages(url, "get", ["features"])
 
 
 def get_latest_observations(station_id: str):
     url = f"{APIHandler.base_url}/stations/{station_id}/observations/latest"
-    return requests.get(url)
+    return call_api(url, 'get')
+
