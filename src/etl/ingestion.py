@@ -1,7 +1,5 @@
-import json
 import logging
-from datetime import datetime
-from typing import Optional
+from typing import TypedDict
 
 import psycopg
 from psycopg import sql
@@ -14,37 +12,21 @@ CONN_STRING = get_env("STAGING_CONNECTION_STRING")
 RAW_PATH = get_env("RAW_PATH")
 
 
-def insert_into_raw(func):
-
-    def wrapper(*args, **kwargs):
-
-        if kwargs.get("use_cache"):
-            # todo: logic to query table for cached data
-            pass
-        result = func(*args, **kwargs)
-        if not result:
-            return
-        url = result["url"]
-        data = result["data"]
-        cached = result["cached"]
-        if cached:
-            return
-
-        filename = (
-            f"{url.replace('/', '%2F')}::::{str(datetime.now()).replace(" ", "::")}"
-        )
-        with open(f"{RAW_PATH}/{filename}.json", "w") as f:
-            json.dump(data, f, indent=4)
-
-    return wrapper
+class UpsertDataStruct(TypedDict):
+    data: list
+    schema: str
+    table: str
+    id_cols: list
+    update_cols: list
+    succ: bool
 
 
 def upsert_records_from_list(func):
     """Assumes data is a list of dictionaries"""
 
-    def wrapper():
+    def wrapper(*args, **kwargs):
 
-        result = func()
+        result = func(*args, **kwargs)
         if not result:
             return
 
